@@ -3,54 +3,48 @@ const app = express();
 const logger = require("./utils/logger");
 const cors = require("cors");
 const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "../../.env") });
+require("dotenv").config(); // ✅ FIXED
 const connectDB = require("./config/db.config");
-const { generalLimiter, securityHeaders, corsOptions } = require("./middleware/security");
+const { generalLimiter, securityHeaders } = require("./middleware/security");
 
-//middleware
-app.use(cors(corsOptions));
+// ================= MIDDLEWARE =================
+app.use(cors({
+  origin: "*", // 🔒 restrict later to Vercel domain
+  credentials: true
+}));
 app.use(securityHeaders);
 app.use(generalLimiter);
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Serve static files from uploads directory (for local file storage)
+// ================= STATIC FILES =================
 const uploadsPath = path.join(__dirname, "../uploads");
 app.use("/uploads", express.static(uploadsPath));
 
-//database - Connect to MongoDB for GridFS storage
+// ================= DATABASE =================
 connectDB()
-  .then((connection) => {
-    if (connection) {
-      logger.info("✅ MongoDB Connected Successfully");
-      logger.info("📦 MongoDB GridFS will be used for file storage");
-      // Storage will switch to GridFS automatically via the 'connected' event listener in multer.js
-    } else {
-      logger.warn("⚠️ MongoDB connection failed, but server will continue running");
-      logger.info("📁 Files will be stored locally in 'uploads' folder");
-    }
+  .then(() => {
+    logger.info("✅ MongoDB Connected Successfully");
   })
   .catch((err) => {
-    logger.error("❌ Error Connecting to MongoDB", err);
-    logger.warn("⚠️ Server will continue to run, but database features will not work");
-    logger.info("📁 Files will be stored locally in 'uploads' folder until MongoDB connects");
+    logger.error("❌ MongoDB connection failed", err);
   });
 
-//routes
+// ================= ROUTES =================
 app.use("/api", require("./routes/index"));
 
-app.get("/get", async (req, res) => {
-  try {
-    // Simulate a database or API call
-    res.send({ message: "API is working!" });
-  } catch (err) {
-    console.error("Error occurred:", err);
-    res.status(500).send({ error: "Internal server error" });
-  }
+// Health check (Render)
+app.get("/", (req, res) => {
+  res.status(200).send("Backend is running 🚀");
 });
 
+app.get("/get", async (req, res) => {
+  res.send({ message: "API is working!" });
+});
+
+// ================= SERVER =================
 const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, () => {
-  logger.info(`server is running on port ${PORT}`);
+  logger.info(`🚀 Server running on port ${PORT}`);
 });
