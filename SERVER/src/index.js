@@ -9,7 +9,10 @@ const { generalLimiter, securityHeaders } = require("./middleware/security");
 
 // ================= MIDDLEWARE =================
 app.use(cors({
-  origin: "*", // 🔒 restrict later to Vercel domain
+  origin: [
+    'https://abhisite-starlive.vercel.app', // Your new Vercel URL
+    'http://localhost:3000'                // For local development
+  ],
   credentials: true
 }));
 app.use(securityHeaders);
